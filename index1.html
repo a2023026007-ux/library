@@ -1,0 +1,141 @@
+import { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+import Character from './Character.jsx';
+import StatusBubble from './parts/StatusBubble.jsx';
+import { readInput } from './input.js';
+import { FLOORS } from './floors.js';
+import { START_POS } from './layout.js';
+import { consumeTeleport, playerPos } from './playerState.js';
+import { useAppStore } from '../../store/useAppStore.js';
+import { useStudyStore } from '../../store/useStudyStore.js';
+
+// 멀미를 줄이기 위해 속도는 걷는 정도로, 출발·정지·회전은 서서히 가속·감속한다
+const SPEED = 3;
+const BACKWARD_FACTOR = 0.6;
+const TURN_SPEED = 1.6;
+const MOVE_ACCEL = 6; // 클수록 빨리 최고 속도에 도달
+const TURN_ACCEL = 5;
+const CAM = { dist: 4.2, height: 2.6 };
+const CAM_SEATED = { dist: 2.6, height: 2.1 };
+const CAM_MIN_DIST = 0.8;
+const CAM_FOLLOW = 6; // 카메라 위치·방향이 캐릭터를 따라가는 속도
+const CAM_PULL_IN = 10; // 벽에 막혔을 때 당겨오는 속도
+const CAM_PUSH_OUT = 2; // 막힘이 풀렸을 때 되돌아가는 속도 (천천히)
+const LOOK_AHEAD = 0.8;
+const NO_INPUT = { forward: 0, turn: 0 };
+
+const ease = (rate, dt) => 1 - Math.exp(-rate * dt);
+// 두 각도 사이의 가장 짧은 차이 (-π ~ π)
+const angleDiff = (a, b) => THREE.MathUtils.euclideanModulo(b - a + Math.PI, Math.PI * 2) - Math.PI;
+
+// 3인칭 백뷰: 탱크식 조작(전진/후진 + 좌우 회전), 카메라는 캐릭터 등 뒤를 부드럽게 따라간다.
+// 앉아 있을 때는 좌석에 고정되고, 층 이동·일어서기는 teleport로 처리한다.
+export default function Player() {
+  const ref = useRef();
+  const speedRef = useRef(0);
+  const velocity = useRef({ forward: 0, turn: 0 });
+  const cam = useRef({ yaw: 0, dist: CAM.dist });
+  const interactionRef = useRef(null);
+  const zoneRef = useRef(null);
+  const camTarget = useMemo(() => new THREE.Vector3(), []);
+  const lookTarget = useMemo(() => new THREE.Vector3(), []);
+  const seat = useAppStore((s) => s.seat);
+  const studyStartedAt = useStudyStore((s) => s.current?.startedAt);
+
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, 0.05);
+    const p = ref.current;
+    const v = velocity.current;
+    const c = cam.current;
+    const app = useAppStore.getState();
+    const F = FLOORS[app.floor];
+
+    // 순간 이동 시에는 카메라도 바로 등 뒤로 옮긴다 (이동 연출이 화면을 가린 상태)
+    const tp = consumeTeleport();
+    if (tp) {
+      p.position.set(tp.x, 0, tp.z);
+      p.rotation.y = tp.ry;
+      v.forward = v.turn = 0;
+      c.yaw = tp.ry;
+      c.dist = CAM.dist;
+      state.camera.position.set(tp.x - Math.sin(tp.ry) * CAM.dist, CAM.height, tp.z - Math.cos(tp.ry) * CAM.dist);
+    }
+
+    const busy = app.kioskMode || app.panel || app.sheet || app.fading;
+    if (app.seat) {
+      p.position.set(app.seat.x, 0, app.seat.z);
+      p.rotation.y = app.seat.ry;
+      v.forward = v.turn = 0;
+    } else {
+      const input = busy ? NO_INPUT : readInput();
+      v.forward = THREE.MathUtils.lerp(v.forward, input.forward, ease(MOVE_ACCEL, dt));
+      v.turn = THREE.MathUtils.lerp(v.turn, input.turn, ease(TURN_ACCEL, dt));
+
+      p.rotation.y -= v.turn * TURN_SPEED * dt;
+      // 축별로 따로 판정해 벽/책장에 비스듬히 부딪혀도 미끄러지듯 이동
+      const step = v.forward * (v.forward < 0 ? BACKWARD_FACTOR : 1) * SPEED * dt;
+      const nx = p.position.x + Math.sin(p.rotation.y) * step;
+      const nz = p.position.z + Math.cos(p.rotation.y) * step;
+      if (!F.collides(nx, p.position.z)) p.position.x = nx;
+      if (!F.collides(p.position.x, nz)) p.position.z = nz;
+      p.position.y = F.heightAt(p.position.x, p.position.z);
+
+      const travel = !app.fading && F.checkTravel(p.position.x, p.position.z);
+      if (travel) app.travel(travel.floor, travel.spawn);
+    }
+    speedRef.current = Math.abs(v.forward);
+    playerPos.copy(p.position);
+
+    // 카메라 방향은 캐릭터 방향을 한 박자 늦게 따라가 회전이 부드럽게 보인다
+    c.yaw += angleDiff(c.yaw, p.rotation.y) * ease(CAM_FOLLOW, dt);
+    const view = app.seat ? CAM_SEATED : CAM;
+    const dirX = Math.sin(c.yaw);
+    const dirZ = Math.cos(c.yaw);
+
+    // 등 뒤로 조금씩 물러나며 벽·서가에 막히는 지점을 찾고, 거리는 부드럽게 바꾼다
+    let wanted = view.dist;
+    for (let d = 0.5; d <= view.dist; d += 0.25) {
+      if (F.cameraBlocked(p.position.x - dirX * d, p.position.z - dirZ * d)) {
+        wanted = Math.max(CAM_MIN_DIST, d - 0.35);
+        break;
+      }
+    }
+    c.dist = THREE.MathUtils.lerp(c.dist, wanted, ease(wanted < c.dist ? CAM_PULL_IN : CAM_PUSH_OUT, dt));
+
+    camTarget.set(p.position.x - dirX * c.dist, p.position.y + view.height, p.position.z - dirZ * c.dist);
+    state.camera.position.lerp(camTarget, ease(CAM_FOLLOW * 1.5, dt));
+    lookTarget.set(p.position.x + dirX * LOOK_AHEAD, p.position.y + 1.3, p.position.z + dirZ * LOOK_AHEAD);
+    state.camera.lookAt(lookTarget);
+
+    // 범위 안에서 가장 가까운 상호작용 지점
+    let nearest = null;
+    if (!app.seat && !busy) {
+      let best = Infinity;
+      for (const it of F.interactions) {
+        const d = Math.hypot(p.position.x - it.x, p.position.z - it.z);
+        if (d < it.range && d < best) {
+          best = d;
+          nearest = it;
+        }
+      }
+    }
+    if (nearest?.id !== interactionRef.current) {
+      interactionRef.current = nearest?.id ?? null;
+      app.setInteraction(nearest);
+    }
+
+    const zone = F.zoneAt(p.position.x, p.position.z);
+    if (zone !== zoneRef.current) {
+      zoneRef.current = zone;
+      app.setZone(zone);
+    }
+  });
+
+  return (
+    <group ref={ref} position={START_POS}>
+      <Character speedRef={speedRef} pose={seat ? 'sit' : 'stand'} />
+      {seat && studyStartedAt && <StatusBubble mode={seat.type} startedAt={studyStartedAt} mine />}
+    </group>
+  );
+}
