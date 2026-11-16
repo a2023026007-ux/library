@@ -3,7 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>CBNU BOOK SPACE</title>
+    <title>CBNU BOOK SPACE · 충북대 3D 가상도서관</title>
+    <meta name="description" content="가입 없이 바로 입장하는 충북대학교 3D 가상도서관. 열람실에서 공부 시간을 기록하고, 책을 추천하고, 다른 이용자와 실시간으로 함께 공부해요." />
+
+    <!-- 링크 미리보기 (카카오톡, 에브리타임, 인스타그램, 페이스북 등). 이미지는 절대 주소여야 한다 -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="CBNU BOOK SPACE" />
+    <meta property="og:url" content="https://library-iota-taupe.vercel.app/" />
+    <meta property="og:title" content="CBNU BOOK SPACE · 충북대 3D 가상도서관" />
+    <meta property="og:description" content="가입 없이 바로 입장! 열람실에서 공부 시간을 기록하고, 다른 이용자와 실시간으로 함께 공부해요." />
+    <meta property="og:image" content="https://library-iota-taupe.vercel.app/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="CBNU BOOK SPACE 3D 가상도서관 화면" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta name="twitter:card" content="summary_large_image" />
     <script type="module" crossorigin>function IN(n,e){for(var t=0;t<e.length;t++){const i=e[t];if(typeof i!="string"&&!Array.isArray(i)){for(const r in i)if(r!=="default"&&!(r in n)){const s=Object.getOwnPropertyDescriptor(i,r);s&&Object.defineProperty(n,r,s.get?s:{enumerable:!0,get:()=>i[r]})}}}return Object.freeze(Object.defineProperty(n,Symbol.toStringTag,{value:"Module"}))}(function(){const e=document.createElement("link").relList;if(e&&e.supports&&e.supports("modulepreload"))return;for(const r of document.querySelectorAll('link[rel="modulepreload"]'))i(r);new MutationObserver(r=>{for(const s of r)if(s.type==="childList")for(const o of s.addedNodes)o.tagName==="LINK"&&o.rel==="modulepreload"&&i(o)}).observe(document,{childList:!0,subtree:!0});function t(r){const s={};return r.integrity&&(s.integrity=r.integrity),r.referrerPolicy&&(s.referrerPolicy=r.referrerPolicy),r.crossOrigin==="use-credentials"?s.credentials="include":r.crossOrigin==="anonymous"?s.credentials="omit":s.credentials="same-origin",s}function i(r){if(r.ep)return;r.ep=!0;const s=t(r);fetch(r.href,s)}})();const kN="modulepreload",LN=function(n,e){return new URL(n,e).href},lb={},El=function(e,t,i){let r=Promise.resolve();if(t&&t.length>0){const o=document.getElementsByTagName("link"),a=document.querySelector("meta[property=csp-nonce]"),l=(a==null?void 0:a.nonce)||(a==null?void 0:a.getAttribute("nonce"));r=Promise.allSettled(t.map(d=>{if(d=LN(d,i),d in lb)return;lb[d]=!0;const h=d.endsWith(".css"),f=h?'[rel="stylesheet"]':"";if(!!i)for(let x=o.length-1;x>=0;x--){const M=o[x];if(M.href===d&&(!h||M.rel==="stylesheet"))return}else if(document.querySelector(`link[href="${d}"]${f}`))return;const v=document.createElement("link");if(v.rel=h?"stylesheet":kN,h||(v.as="script"),v.crossOrigin="",v.href=d,l&&v.setAttribute("nonce",l),document.head.appendChild(v),h)return new Promise((x,M)=>{v.addEventListener("load",x),v.addEventListener("error",()=>M(new Error(`Unable to preload CSS for ${d}`)))})}))}function s(o){const a=new Event("vite:preloadError",{cancelable:!0});if(a.payload=o,window.dispatchEvent(a),!a.defaultPrevented)throw o}return r.then(o=>{for(const a of o||[])a.status==="rejected"&&s(a.reason);return e().catch(s)})};var Pr=typeof globalThis<"u"?globalThis:typeof window<"u"?window:typeof global<"u"?global:typeof self<"u"?self:{};function Nu(n){return n&&n.__esModule&&Object.prototype.hasOwnProperty.call(n,"default")?n.default:n}function NN(n){if(n.__esModule)return n;var e=n.default;if(typeof e=="function"){var t=function i(){return this instanceof i?Reflect.construct(e,arguments,this.constructor):e.apply(this,arguments)};t.prototype=e.prototype}else t={};return Object.defineProperty(t,"__esModule",{value:!0}),Object.keys(n).forEach(function(i){var r=Object.getOwnPropertyDescriptor(n,i);Object.defineProperty(t,i,r.get?r:{enumerable:!0,get:function(){return n[i]}})}),t}var AC={exports:{}},V0={},CC={exports:{}},Et={};/**
  * @license React
  * react.production.min.js
